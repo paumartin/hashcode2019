@@ -84,7 +84,7 @@ def findBestCandidate(prevSlide):
                         candidate.append(currentImage2)
                         break
 
-                if not currentImage2: 
+                if currentImage2 == None: 
                     if len(positionMap["V"]):
                         currentImage2 = positionMap["V"].pop()
                         [ tagsMap[tagToRemove].discard(currentImage2) for tagToRemove in dataset[currentImage2]["tags"] ]
