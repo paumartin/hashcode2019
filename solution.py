@@ -4,8 +4,8 @@ from tqdm import tqdm
 POSITION_ROW=0
 N_TAGS_ROW=1
 
-fileNames = [ "a_example.txt", "b_lovely_landscapes.txt", "c_memorable_moments.txt", "d_pet_pictures.txt", "e_shiny_selfies.txt" ] 
-# fileNames = [ "a_example.txt" ] 
+# fileNames = [ "a_example.txt", "b_lovely_landscapes.txt", "c_memorable_moments.txt", "d_pet_pictures.txt", "e_shiny_selfies.txt" ] 
+fileNames = [ "c_memorable_moments.txt" ] 
 
 def importer(file_path):
     with open(file_path, 'r') as file:
@@ -70,19 +70,30 @@ def findBestCandidate(prevSlide):
             candidate.append(currentImage)
             if dataset[currentImage]["position"] != "H": 
                 positionMap["V"].discard(currentImage)
+                [ tagsMap[tagToRemove].discard(currentImage) for tagToRemove in dataset[currentImage]["tags"] ]
+                [ vTagsMap[tagToRemove].discard(currentImage) for tagToRemove in dataset[currentImage]["tags"] ]
+
                 currentImage2=None
                 for tag2 in previousTags:
                     if tag2 in vTagsMap and len(vTagsMap[tag2]) > 0:
                         currentImage2 = vTagsMap[tag2].pop()
                         tagsMap[tag2].discard(currentImage2)
                         positionMap["V"].discard(currentImage2)
+                        [ tagsMap[tagToRemove].discard(currentImage2) if tagToRemove in tagsMap else None for tagToRemove in dataset[currentImage2]["tags"] ]
+                        [ vTagsMap[tagToRemove].discard(currentImage2) if tagToRemove in vTagsMap else None for tagToRemove in dataset[currentImage2]["tags"] ]
+                        candidate.append(currentImage2)
+                        break
+
                 if not currentImage2: 
-                    currentImage2 = positionMap["V"].pop()
-                    [ tagsMap[tagToRemove].discard(currentImage2) for tagToRemove in dataset[currentImage2]["tags"] ]
-                    [ vTagsMap[tagToRemove].discard(currentImage2) for tagToRemove in dataset[currentImage2]["tags"] ]
-                candidate.append(currentImage2)
+                    if len(positionMap["V"]):
+                        currentImage2 = positionMap["V"].pop()
+                        [ tagsMap[tagToRemove].discard(currentImage2) for tagToRemove in dataset[currentImage2]["tags"] ]
+                        [ vTagsMap[tagToRemove].discard(currentImage2) for tagToRemove in dataset[currentImage2]["tags"] ]
+                        candidate.append(currentImage2)
             else: 
                 positionMap["H"].discard(currentImage)
+                [ tagsMap[tagToRemove].discard(currentImage) if tagToRemove in tagsMap else None for tagToRemove in dataset[currentImage]["tags"] ]
+
         else:
             if len(positionMap["H"]) > 0:
                 candidate = [ positionMap["H"].pop() ]
@@ -94,11 +105,12 @@ def findBestCandidate(prevSlide):
             if len(candidate) > 0:
                 for currentImage in candidate:
                     [ tagsMap[tagToRemove].discard(currentImage) for tagToRemove in dataset[currentImage]["tags"] ]
-                    [ vTagsMap[tagToRemove].discard(currentImage)  if tagToRemove in vTagsMap else None for tagToRemove in dataset[currentImage]["tags"] ]
+                    [ vTagsMap[tagToRemove].discard(currentImage) if tagToRemove in vTagsMap else None for tagToRemove in dataset[currentImage]["tags"] ]
 
         if len(candidate) > 0:
             candidates.append(candidate)
-
+    
+    print(candidates)
     punctuations = [ calculateImagesDistance(prevSlide, candidate) for candidate in candidates ]  
     bestIndex = punctuations.index(max(punctuations))
     bestCandidate = candidates[bestIndex]
@@ -109,10 +121,10 @@ def findBestCandidate(prevSlide):
             [ vTagsMap[tagToAdd].add(candidate[0]) for tagToAdd in dataset[candidate[0]]["tags"] ]
             [ tagsMap[tagToAdd].add(candidate[0]) for tagToAdd in dataset[candidate[0]]["tags"] ]
             positionMap["V"].add(candidate[0])
-
-            [ vTagsMap[tagToAdd].add(candidate[1]) for tagToAdd in dataset[candidate[1]]["tags"] ]
-            [ tagsMap[tagToAdd].add(candidate[1]) for tagToAdd in dataset[candidate[1]]["tags"] ]
-            positionMap["V"].add(candidate[1])
+            if len(candidate) > 1: 
+                [ vTagsMap[tagToAdd].add(candidate[1]) for tagToAdd in dataset[candidate[1]]["tags"] ]
+                [ tagsMap[tagToAdd].add(candidate[1]) for tagToAdd in dataset[candidate[1]]["tags"] ]
+                positionMap["V"].add(candidate[1])
         else: 
             [ tagsMap[tagToAdd].add(candidate[0]) for tagToAdd in dataset[candidate[0]]["tags"] ]
             positionMap["H"].add(candidate[0])
@@ -124,6 +136,7 @@ def findBestCandidate(prevSlide):
 
 for fileName in fileNames: 
 
+    print(fileName)
     tagsMap = {}
     positionMap = {
         "H": set(),
@@ -150,6 +163,7 @@ for fileName in fileNames:
     previousSlide = initialSlide
 
     while len(pendingImages) > 0:
+        print(len(pendingImages))
         bestCandidate = findBestCandidate(previousSlide)
         slides.append(bestCandidate)
         previousSlide = bestCandidate
